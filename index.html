@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Drag Strip Garage</title>
+<style>
+:root{
+  --bg:#0d1018; --panel:#171c28; --panel2:#202738; --line:#2e3850;
+  --text:#eef2fa; --muted:#93a0ba; --accent:#ff8a1f; --accent2:#ffc53d;
+  --good:#4ade80; --bad:#f87171; --blue:#60a5fa; --purple:#c084fc;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-tap-highlight-color:transparent}
+body{min-height:100vh}
+button{font:inherit;color:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel2);
+  border-radius:10px;padding:8px 14px}
+button:hover:not(:disabled){filter:brightness(1.15)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#1a0d00;border:none;font-weight:800}
+button.danger{background:#3a1b1f;border-color:#6b2a31;color:#fecaca}
+button.small{padding:5px 10px;font-size:13px;border-radius:8px}
+.hidden{display:none!important}
+
+/* header */
+header{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#0a0d14;border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:20;flex-wrap:wrap}
+header h1{font-size:20px;margin:0;letter-spacing:.5px}
+header h1 span{color:var(--accent)}
+.bank{font-size:20px;font-weight:800;color:var(--good);margin-left:auto;font-variant-numeric:tabular-nums}
+.bank.neg{color:var(--bad)}
+.hbtns{display:flex;gap:8px;flex-wrap:wrap}
+
+/* garage */
+#garage{display:grid;grid-template-columns:minmax(320px,430px) 1fr;gap:16px;padding:16px;max-width:1400px;margin:0 auto}
+@media (max-width:900px){#garage{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+.panel h2{font-size:15px;margin:0 0 10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+#carPreview{width:100%;height:150px;display:block;background:#11151f;border-radius:10px}
+.bigstat{display:flex;align-items:baseline;justify-content:space-between;margin-top:12px}
+.bigstat .lbl{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.bigstat .val{font-size:30px;font-weight:900;font-variant-numeric:tabular-nums}
+.bigstat.push .val{color:var(--accent)}
+.bigstat.mass .val{color:var(--blue)}
+.calc{font-size:13px;color:var(--muted);margin:2px 0 4px}
+.calc b{color:var(--text)}
+.bar{height:16px;background:#0c0f17;border-radius:8px;overflow:hidden;display:flex;border:1px solid var(--line)}
+.bar > div{height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.minirow{display:flex;justify-content:space-between;font-size:14px;padding:6px 0;border-top:1px solid var(--line)}
+.minirow:first-of-type{border-top:none}
+.stars{color:var(--accent2);letter-spacing:2px}
+.stars .off{color:#3b465f}
+
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tab{padding:9px 14px;border-radius:10px;font-weight:700}
+.tab.on{background:var(--accent);color:#1a0d00;border-color:var(--accent)}
+.tabnote{font-size:13px;color:var(--muted);margin:-4px 0 12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.card{background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.card.eq{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.card h3{margin:0;font-size:16px}
+.card .desc{font-size:12.5px;color:var(--muted);min-height:32px}
+.card .specs{font-size:13.5px;display:grid;grid-template-columns:auto 1fr;gap:2px 10px}
+.card .specs span:nth-child(odd){color:var(--muted)}
+.card .specs b{font-variant-numeric:tabular-nums}
+.delta{font-size:12px;font-weight:700}
+.up{color:var(--good)} .down{color:var(--bad)}
+.card .row{display:flex;gap:6px;align-items:center;margin-top:auto;padding-top:6px}
+.card .price{font-weight:800;color:var(--accent2);margin-right:auto}
+.tag{font-size:11px;font-weight:800;padding:2px 7px;border-radius:6px;background:var(--accent);color:#1a0d00}
+.tag.own{background:#2b3854;color:var(--text)}
+
+#tiers{grid-column:1/-1}
+.tiergrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.tier{background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.tier.won{border-color:var(--good)}
+.tier.locked{opacity:.5}
+.tier h3{margin:0;font-size:16px}
+.tier .sub{font-size:12.5px;color:var(--muted)}
+.tier .prize{font-size:13px}
+.tier button{margin-top:auto}
+
+/* overlay screens */
+.screen{position:fixed;inset:0;background:rgba(5,7,12,.92);z-index:50;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:24px 12px}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:860px;width:100%}
+.sheet h2{margin:0 0 6px;font-size:24px}
+.sheet .sub{color:var(--muted);margin:0 0 14px}
+.bracket{display:flex;gap:8px;margin-bottom:16px}
+.bracket div{flex:1;text-align:center;padding:8px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);font-size:13px}
+.bracket .cur{border-color:var(--accent);color:var(--accent);font-weight:800}
+.bracket .done{border-color:var(--good);color:var(--good)}
+.vs{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:stretch}
+@media (max-width:640px){.vs{grid-template-columns:1fr}.vs .vsmid{display:none}}
+.vscard{background:var(--panel2);border-radius:12px;padding:14px;border:1px solid var(--line)}
+.vscard h3{margin:0 0 8px}
+.vscard .n{font-size:26px;font-weight:900;font-variant-numeric:tabular-nums}
+.vscard .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.vsmid{align-self:center;font-size:28px;font-weight:900;color:var(--accent)}
+.pit{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+@media (max-width:640px){.pit{grid-template-columns:1fr}}
+.pit label{font-size:13px;color:var(--muted);display:block;margin-bottom:4px}
+select{width:100%;font:inherit;padding:9px;border-radius:9px;background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+.actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+.warnline{color:var(--accent2);font-size:14px;margin-top:10px}
+
+/* race */
+#race{position:fixed;inset:0;background:#06080d;z-index:60;display:flex;flex-direction:column}
+#raceTop{display:flex;align-items:center;gap:16px;padding:10px 16px;flex-wrap:wrap}
+.tree{display:flex;gap:10px;align-items:center;background:#111;padding:8px 14px;border-radius:30px;border:2px solid #333}
+.bulb{width:30px;height:30px;border-radius:50%;background:#2a2a2a;border:2px solid #000}
+.bulb.amber{background:#ffb000;box-shadow:0 0 18px #ffb000}
+.bulb.green{background:#22ee55;box-shadow:0 0 22px #22ee55}
+.bulb.red{background:#ff2a2a;box-shadow:0 0 22px #ff2a2a}
+.hud{display:flex;gap:18px;font-variant-numeric:tabular-nums;margin-left:auto;flex-wrap:wrap}
+.hud div{text-align:right}
+.hud .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.hud .v{font-size:24px;font-weight:900}
+#miniMap{height:22px;margin:0 16px;position:relative;background:#141926;border-radius:11px;border:1px solid var(--line)}
+#raceCanvas{flex:1;width:100%;min-height:200px;display:block;touch-action:none}
+#raceMsg{position:absolute;left:0;right:0;top:38%;text-align:center;font-size:44px;font-weight:900;pointer-events:none;
+  text-shadow:0 4px 18px #000}
+#actionBtn{margin:12px auto 20px;display:block;width:min(520px,90vw);padding:22px;font-size:28px;font-weight:900;border-radius:18px;
+  border:none;letter-spacing:2px;touch-action:manipulation}
+#actionBtn.launch{background:#1f8f3a;color:#fff}
+#actionBtn.chute{background:#d9480f;color:#fff}
+#actionBtn.chute.urgent{animation:pulse .35s infinite alternate}
+#actionBtn.idle{background:#2a3144;color:#9aa6c0}
+@keyframes pulse{from{transform:scale(1)}to{transform:scale(1.05);background:#ff6a00}}
+.keyhint{text-align:center;color:var(--muted);font-size:12px;margin-top:-12px;margin-bottom:10px}
+
+/* results */
+table.res{width:100%;border-collapse:collapse;font-size:15px;margin:10px 0}
+table.res th,table.res td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+table.res th:first-child,table.res td:first-child{text-align:left;color:var(--muted)}
+table.res tr.hl td{font-weight:900;font-size:17px}
+table.res tr.hl td:not(:first-child){color:var(--accent2)}
+.money{background:var(--panel2);border-radius:12px;padding:10px 14px;margin-top:10px}
+.money div{display:flex;justify-content:space-between;padding:3px 0}
+.tip{background:#1d2a1f;border:1px solid #2f5a37;border-radius:12px;padding:10px 14px;margin-top:12px;font-size:15px}
+.tip.warn{background:#2c2114;border-color:#6b4a1d}
+.tip.bad{background:#2e1719;border-color:#6b2a31}
+.headline{font-size:34px;font-weight:900;margin:0}
+.headline.win{color:var(--good)} .headline.lose{color:var(--bad)}
+
+/* log */
+.logwrap{overflow:auto;max-height:60vh}
+table.log{border-collapse:collapse;font-size:13px;width:100%}
+table.log th,table.log td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.log th{position:sticky;top:0;background:var(--panel);color:var(--muted);font-size:11px;text-transform:uppercase}
+table.log td:nth-child(2),table.log th:nth-child(2){text-align:left}
+input[type=text]{width:100%;font:inherit;padding:10px;border-radius:9px;background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+textarea.code{width:100%;min-height:110px;font-family:ui-monospace,Menlo,monospace;font-size:12px;background:var(--panel2);color:var(--text);
+  border:1px solid var(--line);border-radius:10px;padding:10px;word-break:break-all}
+.intro p, .intro li{font-size:15.5px;line-height:1.45}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#222b3f;border:1px solid var(--line);padding:10px 18px;border-radius:12px;z-index:100;font-size:15px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏁 Drag Strip <span>Garage</span></h1>
+  <div class="hbtns">
+    <button class="small primary" id="btnTiers">🏁 Tournaments</button>
+    <button class="small" id="btnHelp">How to play</button>
+    <button class="small" id="btnLog">Race log</button>
+    <button class="small" id="btnTurnin">Turn in</button>
+    <button class="small" id="btnSound">🔊 Sound</button>
+  </div>
+  <div class="bank" id="bank">$0</div>
+</header>
+
+<main id="garage">
+  <section class="panel" id="carPanel">
+    <h2>Your car</h2>
+    <canvas id="carPreview"></canvas>
+    <div class="bigstat push"><span class="lbl">Push on the road</span><span class="val" id="sPush">0 N</span></div>
+    <div class="calc" id="sPushCalc"></div>
+    <div class="bigstat mass"><span class="lbl">Total mass</span><span class="val" id="sMass">0 kg</span></div>
+    <div class="bar" id="massBar"></div>
+    <div class="legend" id="massLegend"></div>
+    <div style="margin-top:12px">
+      <div class="minirow"><span>Frame durability <small style="color:var(--muted)">(lowers repair bills)</small></span><span class="stars" id="sDur"></span></div>
+      <div class="minirow"><span>Driver safety <small style="color:var(--muted)">(lowers injury chance)</small></span><span class="stars" id="sSafe"></span></div>
+      <div class="minirow"><span>Parachute pull</span><b id="sChute"></b></div>
+      <div class="minirow"><span>Parachute rips above</span><b id="sRating"></b></div>
+      <div class="minirow"><span>Auto-deploy sensor</span><b id="sAuto"></b></div>
+      <div class="minirow"><span>Tires + gas cost per race</span><b id="sPerRace"></b></div>
+    </div>
+  </section>
+
+  <section class="panel" id="partsPanel">
+    <h2>Parts shop</h2>
+    <div class="tabs" id="tabs"></div>
+    <div class="tabnote" id="tabNote"></div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section class="panel" id="tiers">
+    <h2>Tournaments — win a final to unlock the next level</h2>
+    <div class="tiergrid" id="tierGrid"></div>
+  </section>
+</main>
+
+<!-- tournament / pit screen -->
+<div class="screen hidden" id="tourScreen"><div class="sheet" id="tourSheet"></div></div>
+
+<!-- race -->
+<div id="race" class="hidden">
+  <div id="raceTop">
+    <div class="tree"><div class="bulb" id="b1"></div><div class="bulb" id="b2"></div><div class="bulb" id="b3"></div><div class="bulb" id="bG"></div></div>
+    <div id="raceTitle" style="font-weight:800"></div>
+    <div class="hud">
+      <div><div class="k">Speed</div><div class="v" id="hSpeed">0</div></div>
+      <div><div class="k">Distance</div><div class="v" id="hDist">0 m</div></div>
+      <div><div class="k">Time</div><div class="v" id="hTime">0.00</div></div>
+    </div>
+  </div>
+  <div id="miniMap"></div>
+  <div style="position:relative;flex:1;display:flex">
+    <canvas id="raceCanvas"></canvas>
+    <div id="raceMsg"></div>
+  </div>
+  <button id="actionBtn" class="idle">GET READY…</button>
+  <div class="keyhint">Tap the button, or press the SPACE bar</div>
+</div>
+
+<!-- generic modal -->
+<div class="screen hidden" id="modal"><div class="sheet" id="modalSheet"></div></div>
+<div class="toast hidden" id="toast"></div>
+
+<script>
+/* =====================================================================
+   DATA + PHYSICS (DOM-free — testable headless; keep it that way)
+   ===================================================================== */
+const TRACK_FINISH = 201;          // eighth-mile strip, metres
+const SHUTDOWN = 350;              // braking area past the finish line
+const TRACK_END = TRACK_FINISH + SHUTDOWN;   // catch net
+const BODY_MASS = 180;             // driver + body panels + seat
+const BRAKE_FORCE = 2000;          // wheel brakes, always on after the finish
+const START_MONEY = 1500;
+
+const PARTS = {
+  engine: [
+    {id:'e0', name:'Stock 4-Cylinder', force:7000,  mass:150, cost:0,     desc:'The engine that came with the car. Light, but weak.'},
+    {id:'e1', name:'V6',               force:10000, mass:250, cost:1000,  desc:'A solid first upgrade.'},
+    {id:'e2', name:'V8',               force:14000, mass:400, cost:3000,  desc:'Classic muscle-car power.'},
+    {id:'e3', name:'Big-Block V8',     force:18000, mass:600, cost:6000,  desc:'Huge cast-iron block. More power, lots more metal.'},
+    {id:'e4', name:'Monster V12',      force:22000, mass:950, cost:12000, desc:'TWELVE cylinders! The biggest engine in the shop!', trap:true},
+    {id:'e5', name:'Supercharged Hemi',force:26000, mass:550, cost:18000, desc:'Pro-level power from a supercharger.'},
+    {id:'e6', name:'Aluminum Turbo',   force:20000, mass:220, cost:26000, desc:'Less power than the Hemi, but machined from aluminum.'},
+  ],
+  frame: [
+    {id:'f0', name:'Steel Tube',        mass:300, dur:1, safe:1, cost:0,     desc:'Basic welded steel tubes.'},
+    {id:'f1', name:'Reinforced Steel',  mass:420, dur:2, safe:2, cost:1200,  desc:'Extra steel bracing. Tougher and safer.'},
+    {id:'f2', name:'Chromoly Tube',     mass:290, dur:2, safe:2, cost:4000,  desc:'Chrome-moly alloy: as strong as reinforced steel.'},
+    {id:'f3', name:'Heavy Roll Cage',   mass:480, dur:4, safe:4, cost:5000,  desc:'Built like a tank.'},
+    {id:'f4', name:'Chrome Show Frame', mass:440, dur:2, safe:1, cost:8000,  desc:'Mirror-polished chrome! Wins every car show!', trap:true},
+    {id:'f5', name:'Aluminum Monocoque',mass:220, dur:3, safe:3, cost:11000, desc:'One-piece aluminum shell.'},
+    {id:'f6', name:'Carbon Fiber Tub',  mass:140, dur:5, safe:5, cost:22000, desc:'Same stuff as real race cars. Light and very strong.'},
+  ],
+  tires: [
+    {id:'t0', name:'Bald Retreads',     mass:60,  grip:0.50, cost:0,    desc:'Free from the junkyard. Lots of wheelspin.'},
+    {id:'t1', name:'Street Tires',      mass:60,  grip:0.62, cost:100,  desc:'Everyday tires.'},
+    {id:'t2', name:'Performance Tires', mass:62,  grip:0.74, cost:250,  desc:'Softer rubber, better grip.'},
+    {id:'t3', name:'Drag Radials',      mass:65,  grip:0.86, cost:500,  desc:'Made for the drag strip.'},
+    {id:'t4', name:'Racing Slicks',     mass:65,  grip:0.95, cost:1000, desc:'Sticky, wide, no tread. The best grip.'},
+    {id:'t5', name:'Chrome Spinners',   mass:110, grip:0.68, cost:800,  desc:'Shiny chrome rims that SPIN! So cool!', trap:true},
+  ],
+  gas: [
+    {id:'g0', name:'Regular',           boost:1.00, cost:0,    desc:'Free fill-up.'},
+    {id:'g1', name:'Premium',           boost:1.10, cost:100,  desc:'Higher octane.'},
+    {id:'g2', name:'Race Fuel',         boost:1.25, cost:400,  desc:'Track-only fuel.'},
+    {id:'g3', name:'Ultra Platinum X',  boost:1.28, cost:1500, desc:'Premium-premium-PREMIUM fuel. Fancy can!', trap:true},
+    {id:'g4', name:'Nitromethane',      boost:1.45, cost:1200, desc:'Top-fuel dragster fuel.'},
+  ],
+  chute: [
+    {id:'c0', name:'Small Chute',       force:4000,  rating:55,  mass:10, cost:0,     desc:'A small nylon chute.'},
+    {id:'c1', name:'Medium Chute',      force:7000,  rating:80,  mass:15, cost:1000,  desc:'Stronger stitching, bigger canopy.'},
+    {id:'c2', name:'Large Chute',       force:11000, rating:100, mass:20, cost:3000,  desc:'Kevlar straps.'},
+    {id:'c3', name:'Dual Chutes',       force:24000, rating:140, mass:30, cost:7000,  desc:'Two chutes, like top-fuel dragsters.'},
+    {id:'c4', name:'Mega Triple Chute', force:25000, rating:145, mass:70, cost:14000, desc:'THREE chutes! Maximum safety (and maximum weight).', trap:true},
+  ],
+};
+const AUTO_DEPLOY = {cost:4000, mass:5};
+const CONSUMABLE = {tires:true, gas:true};
+const DUR_FACTOR = [0, 1.0, 0.75, 0.55, 0.4, 0.3];
+
+function part(cat, id){ return PARTS[cat].find(p => p.id === id) || PARTS[cat][0]; }
+
+const TIERS = [
+  {name:'Rookie Night',      prizes:[400,600,1500],     react:[0.28,0.42],
+   opps:[{name:'Rusty Rick',      mass:900,  a:4.8, color:'#9a6b3c'},
+         {name:'Daisy Dash',      mass:600,  a:5.4, color:'#f9a8d4'},
+         {name:'Moose Malone',    mass:1150, a:6.0, color:'#65a30d'}]},
+  {name:'Amateur Cup',       prizes:[800,1200,3000],    react:[0.24,0.38],
+   opps:[{name:'Tank Thompson',   mass:1400, a:7.2, color:'#4d7c0f'},
+         {name:'Pixie Patel',     mass:650,  a:8.1, color:'#a78bfa'},
+         {name:'Duke Daniels',    mass:1000, a:9.0, color:'#fbbf24'}]},
+  {name:'Sportsman Series',  prizes:[1500,2500,6000],   react:[0.20,0.34],
+   opps:[{name:'Iron Ingrid',     mass:1600, a:10.0, color:'#94a3b8'},
+         {name:'Feather Fong',    mass:700,  a:11.2, color:'#67e8f9'},
+         {name:'Big Bo Barnes',   mass:1300, a:12.5, color:'#dc2626'}]},
+  {name:'Pro Stock Open',    prizes:[3000,5000,12000],  react:[0.18,0.30],
+   opps:[{name:'The Hammer',      mass:1700, a:14.4, color:'#525252'},
+         {name:'Lightning Liu',   mass:800,  a:16.2, color:'#facc15'},
+         {name:'Mad Max Moreno',  mass:1200, a:18.0, color:'#ea580c'}]},
+  {name:'Elite Invitational',prizes:[4000,6000,15000],  react:[0.16,0.26],
+   opps:[{name:'Goliath',         mass:1800, a:20.0, color:'#7c2d12'},
+         {name:'Swift Sato',      mass:750,  a:22.5, color:'#22d3ee'},
+         {name:'Queen Quinn',     mass:1000, a:25.0, color:'#e879f9'}]},
+  {name:'World Championship',prizes:[6000,10000,25000], react:[0.14,0.22],
+   opps:[{name:'Thunder Okafor',  mass:1100, a:27.0, color:'#1d4ed8'},
+         {name:'Ghost Rivera',    mass:650,  a:30.5, color:'#e5e7eb'},
+         {name:'The Champ',       mass:800,  a:33.5, color:'#fde047'}]},
+];
+const ROUND_NAMES = ['Round 1', 'Semifinal', 'Final'];
+
+function oppCar(tier, round){
+  const o = TIERS[tier].opps[round];
+  const push = Math.round(o.a * o.mass / 10) * 10;
+  return {name:o.name, color:o.color, push, mass:o.mass, chuteForce:30000, rating:999, auto:true};
+}
+
+function computeCar(build){
+  const e = part('engine', build.engine), f = part('frame', build.frame),
+        t = part('tires', build.tires),  g = part('gas', build.gas), c = part('chute', build.chute);
+  const massParts = [
+    ['Driver + body', BODY_MASS, '#64748b'],
+    ['Engine', e.mass, '#f97316'],
+    ['Frame', f.mass, '#60a5fa'],
+    ['Tires', t.mass, '#a3a3a3'],
+    ['Parachute', c.mass, '#c084fc'],
+  ];
+  if (build.auto) massParts.push(['Auto-deploy', AUTO_DEPLOY.mass, '#4ade80']);
+  const mass = massParts.reduce((s, p) => s + p[1], 0);
+  const push = Math.round(e.force * g.boost * t.grip);
+  return {push, mass, massParts, engineForce:e.force, boost:g.boost, grip:t.grip,
+          dur:f.dur, safe:f.safe, chuteForce:c.force, rating:c.rating, auto:!!build.auto,
+          perRace:t.cost + g.cost};
+}
+
+/* ---- one car's motion on the strip ---- */
+function newRunner(){
+  return {x:0, v:0, launched:false, launchT:null, finished:false, finishT:null, finishV:null,
+          chuteOut:false, ripped:false, deployV:null, deployX:null,
+          stopped:false, crashed:false, impactV:0, stalled:false, maxV:0};
+}
+function deployChute(r, car){
+  if (r.chuteOut || !r.launched || r.stopped || r.crashed) return;
+  r.chuteOut = true; r.deployV = r.v; r.deployX = r.x;
+  if (r.v > car.rating) r.ripped = true;
+}
+// advance one runner by dt seconds; `t` is the race clock at the START of the step
+function stepRunner(r, car, dt, t){
+  if (!r.launched || r.stopped || r.crashed || r.stalled) return;
+  let F = r.finished ? -BRAKE_FORCE : car.push;          // driver lifts off at the finish line
+  if (r.chuteOut && !r.ripped) F -= car.chuteForce;
+  const a = F / car.mass;
+  const x0 = r.x, v0 = r.v;
+  let v = v0 + a * dt;
+  if (v < 0) v = 0;
+  const x = x0 + (v0 + v) / 2 * dt;
+  r.v = v; r.x = x; if (v > r.maxV) r.maxV = v;
+  if (!r.finished && x >= TRACK_FINISH){
+    const frac = (TRACK_FINISH - x0) / (x - x0);
+    r.finished = true; r.finishT = t + frac * dt; r.finishV = v0 + (v - v0) * frac;
+    if (car.auto) deployChute(r, car);
+  }
+  if (x >= TRACK_END){ r.x = TRACK_END; r.crashed = true; r.impactV = v; r.v = 0; return; }
+  if (v === 0){
+    if (r.finished) r.stopped = true; else r.stalled = true;   // stalled = chute out before the line, car stopped
+  }
+}
+
+/* ---- money consequences of a crash ---- */
+function crashBill(car, impactV, chuteCost){
+  const repair = Math.round(car.mass * impactV * 0.04 * DUR_FACTOR[car.dur] / 50) * 50 + 200;
+  const chuteFix = Math.max(100, Math.round(chuteCost * 0.25 / 50) * 50);
+  return {repair, chuteFix};
+}
+function injuryChance(impactV, safe){
+  if (impactV < 4) return 0;
+  return Math.min(0.95, Math.pow(impactV / (8 + 10 * safe), 2));
+}
+function hospitalBill(impactV){ return Math.round((500 + 40 * impactV) / 50) * 50; }
+
+/* ---- headless race for testing / balance ---- */
+// deployAfter: seconds after crossing the line to pull the chute (null = never, 'auto' = on the line)
+function simulateRun(car, reaction, deployAfter){
+  const r = newRunner(), dt = 0.001; let t = 0;
+  r.launched = true; r.launchT = 0;
+  for (let i = 0; i < 200000 && !r.stopped && !r.crashed && !r.stalled; i++){
+    if (deployAfter !== null && deployAfter !== 'auto' && r.finished && !r.chuteOut && t >= r.finishT + deployAfter) deployChute(r, car);
+    stepRunner(r, car, dt, t); t += dt;
+  }
+  return {et: r.finishT, total: r.finishT + reaction, finishV: r.finishV, ripped: r.ripped,
+          crashed: r.crashed, impactV: r.impactV, stopX: r.x};
+}
+
+/* ---- turn-in codec (shared with teacher.html) ---- */
+// NOTE: obfuscation only — the key is in this file. Deters casual editing, not secure.
+const CODEC_SECRET = 'drag-strip-turnin-2026';
+const CODEC_SEED = 0x0d4a6;
+function cyrb53(str, seed){
+  let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+  for (let i=0, ch; i<str.length; i++){
+    ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1>>>16), 2246822507) ^ Math.imul(h2 ^ (h2>>>13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2>>>16), 2246822507) ^ Math.imul(h1 ^ (h1>>>13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1>>>0)).toString(36);
+}
+function xorBytes(bytes, keyStr){
+  const out = new Uint8Array(bytes.length);
+  for (let i=0;i<bytes.length;i++) out[i] = bytes[i] ^ keyStr.charCodeAt(i % keyStr.length);
+  return out;
+}
+function encodeTurnin(payload){
+  const str = JSON.stringify(payload);
+  const blob = cyrb53(str, CODEC_SEED) + '|' + str;
+  const x = xorBytes(new TextEncoder().encode(blob), CODEC_SECRET);
+  let bin = ''; for (const b of x) bin += String.fromCharCode(b);
+  return 'DRAG1' + btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+
+/* =====================================================================
+   STATE
+   ===================================================================== */
+const SAVE_KEY = 'drag-strip-garage-v1';
+function freshState(){
+  return {v:1, name:'', money:START_MONEY,
+    owned:{engine:['e0'], frame:['f0'], chute:['c0'], auto:false},
+    build:{engine:'e0', frame:'f0', tires:'t0', gas:'g0', chute:'c0', auto:false},
+    tiersWon:[false,false,false,false,false,false], champion:false,
+    log:[], stats:{races:0, wins:0, crashes:0, injuries:0, falseStarts:0, rips:0, earned:0, bills:0, trapBuys:[]},
+    seenIntro:false, startedAt:Date.now()};
+}
+let S = load();
+function load(){
+  try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.v === 1) return s; } catch(e){}
+  return freshState();
+}
+function save(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch(e){} }
+
+let tour = null;     // {tier, round}
+let tab = 'engine';
+let soundOn = true;
+
+/* =====================================================================
+   HELPERS
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const fmt = n => Math.round(n).toLocaleString('en-US');
+const money = n => (n < 0 ? '−$' : '$') + fmt(Math.abs(n));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function stars(n){ let s=''; for (let i=1;i<=5;i++) s += i<=n ? '★' : '<span class="off">★</span>'; return s; }
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.remove('hidden'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.add('hidden'),2600); }
+function sign(n, unit, goodIfUp){
+  if (Math.abs(n) < 1e-9) return '';
+  const up = n > 0, good = goodIfUp ? up : !up;
+  return `<span class="delta ${good?'up':'down'}">${up?'+':'−'}${fmt(Math.abs(n))}${unit}</span>`;
+}
+
+/* ---- audio ---- */
+let AC = null;
+function beep(freq, dur, type='square', vol=0.15){
+  if (!soundOn) return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.value = freq; g.gain.value = vol;
+    o.connect(g); g.connect(AC.destination);
+    const t = AC.currentTime; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.start(t); o.stop(t + dur);
+  } catch(e){}
+}
+function crashSound(){
+  if (!soundOn) return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const len = AC.sampleRate * 0.6, buf = AC.createBuffer(1, len, AC.sampleRate), d = buf.getChannelData(0);
+    for (let i=0;i<len;i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/len, 2);
+    const s = AC.createBufferSource(), g = AC.createGain(); g.gain.value = 0.4;
+    s.buffer = buf; s.connect(g); g.connect(AC.destination); s.start();
+  } catch(e){}
+}
+
+/* =====================================================================
+   CAR DRAWING (top-down, nose pointing right). (x,y) = nose centre.
+   ===================================================================== */
+const FRAME_COLORS = {f0:'#8b93a3', f1:'#5b6474', f2:'#3b82f6', f3:'#374151', f4:'#e5e7eb', f5:'#cbd5e1', f6:'#1f2937'};
+const CHUTE_COLORS = {c0:'#fbbf24', c1:'#f97316', c2:'#ef4444', c3:'#a855f7', c4:'#ec4899'};
+function drawCar(ctx, x, y, ppm, opt){
+  // opt: {body, engineScale, tireW, chute:'none'|'packed'|'open'|'ripped', chuteColor, chuteOpen(0..1), label}
+  const L = 7 * ppm, W = 1.6 * ppm;
+  ctx.save(); ctx.translate(x, y);
+  // parachute behind the car
+  if (opt.chute === 'open' || opt.chute === 'ripped'){
+    const k = opt.chuteOpen || 1, cx = -L - 3.5*ppm*k, r = 1.6*ppm*k;
+    ctx.strokeStyle = '#ddd'; ctx.lineWidth = Math.max(1, ppm*0.06);
+    ctx.beginPath(); ctx.moveTo(-L, 0); ctx.lineTo(cx + r*0.3, -r*0.8); ctx.moveTo(-L,0); ctx.lineTo(cx + r*0.3, r*0.8); ctx.stroke();
+    ctx.fillStyle = opt.chuteColor;
+    if (opt.chute === 'open'){
+      ctx.beginPath(); ctx.ellipse(cx, 0, r*0.55, r, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.beginPath(); ctx.ellipse(cx, 0, r*0.25, r*0.45, 0, 0, Math.PI*2); ctx.fill();
+    } else {
+      for (let i=0;i<5;i++){ ctx.save(); ctx.translate(cx - i*ppm*0.4, (i-2)*r*0.4); ctx.rotate(i*0.7);
+        ctx.fillRect(-ppm*0.4, -ppm*0.12, ppm*0.9, ppm*0.25); ctx.restore(); }
+    }
+  }
+  // rear wing
+  ctx.fillStyle = '#111'; ctx.fillRect(-L - 0.2*ppm, -W*0.75, 0.5*ppm, W*1.5);
+  // rear tires
+  const tw = opt.tireW * ppm, tl = 1.3 * ppm;
+  ctx.fillStyle = opt.tireColor || '#1a1a1a'; ctx.strokeStyle = '#6b7280'; ctx.lineWidth = Math.max(1, ppm*0.06);
+  ctx.strokeRect(-L + 0.4*ppm, -W/2 - tw, tl, tw); ctx.strokeRect(-L + 0.4*ppm, W/2, tl, tw);
+  ctx.fillRect(-L + 0.4*ppm, -W/2 - tw, tl, tw); ctx.fillRect(-L + 0.4*ppm, W/2, tl, tw);
+  // front tires (skinny)
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(-1.6*ppm, -W/2 - 0.3*ppm, 0.9*ppm, 0.25*ppm); ctx.fillRect(-1.6*ppm, W/2 + 0.05*ppm, 0.9*ppm, 0.25*ppm);
+  // body
+  ctx.fillStyle = opt.body;
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-2.5*ppm, -W*0.35); ctx.lineTo(-L, -W/2); ctx.lineTo(-L, W/2); ctx.lineTo(-2.5*ppm, W*0.35); ctx.closePath(); ctx.fill();
+  // engine block
+  const es = opt.engineScale;
+  ctx.fillStyle = opt.engineColor || '#f97316';
+  ctx.fillRect(-L*0.55 - es*ppm*0.9, -es*ppm*0.45, es*ppm*1.8, es*ppm*0.9);
+  ctx.fillStyle = '#222'; ctx.fillRect(-L*0.55 - es*ppm*0.9, -es*ppm*0.12, es*ppm*1.8, es*ppm*0.24);
+  // cockpit
+  ctx.fillStyle = '#0b1220'; ctx.beginPath(); ctx.ellipse(-L*0.78, 0, 0.6*ppm, 0.38*ppm, 0, 0, Math.PI*2); ctx.fill();
+  if (opt.chute === 'packed'){ ctx.fillStyle = opt.chuteColor; ctx.fillRect(-L - 0.6*ppm, -0.3*ppm, 0.45*ppm, 0.6*ppm); }
+  ctx.restore();
+}
+function carLook(build){
+  const e = part('engine', build.engine), t = part('tires', build.tires);
+  const tireW = {t0:0.35,t1:0.4,t2:0.45,t3:0.55,t4:0.65,t5:0.55}[t.id];
+  return {body: FRAME_COLORS[build.frame] || '#888', engineScale: 0.55 + Math.sqrt(e.mass/150)*0.35,
+          engineColor: e.id==='e6' ? '#cbd5e1' : e.id==='e5' ? '#dc2626' : '#f97316',
+          tireW, tireColor: t.id==='t5' ? '#d4d4d8' : '#1a1a1a', chuteColor: CHUTE_COLORS[build.chute] || '#fbbf24'};
+}
+function oppLook(o){
+  const s = Math.min(1.6, 0.6 + o.mass/1800);
+  return {body:o.color, engineScale:s, engineColor:'#444', tireW:0.55, chuteColor:'#e5e7eb'};
+}
+
+/* =====================================================================
+   GARAGE UI
+   ===================================================================== */
+const TABS = [
+  ['engine','Engine','Engines push the car forward. Bigger engines push harder — but they are heavier too.'],
+  ['frame','Frame','Every car needs a frame. Stronger frames mean cheaper repairs and safer drivers if you crash.'],
+  ['tires','Tires','Grip = how much of the engine\'s push actually reaches the road. Tires wear out — you pay for a new set EVERY race.'],
+  ['gas','Gas','Better fuel makes the engine push harder. You pay for a new tank EVERY race. Gas has no mass.'],
+  ['chute','Parachute','Your chute stops the car after the finish line. It rips if you open it going faster than its rating. Stop before the net — or crash!'],
+];
+function renderAll(){ renderBank(); renderCar(); renderTabs(); renderCards(); renderTiers(); }
+function renderBank(){ const b=$('bank'); b.textContent = money(S.money); b.classList.toggle('neg', S.money < 0); }
+
+function renderCar(){
+  const car = computeCar(S.build);
+  const cv = $('carPreview'), dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth || 400, h = 150;
+  cv.width = w*dpr; cv.height = h*dpr;
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.fillStyle = '#11151f'; ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle = '#1e2433'; for (let i=0;i<w;i+=24){ ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,h); ctx.stroke(); }
+  const ppm = Math.min(w/11, 40);
+  const look = carLook(S.build);
+  drawCar(ctx, w/2 + 3.8*ppm, h/2, ppm, {...look, chute:'packed'});
+
+  $('sPush').textContent = fmt(car.push) + ' N';
+  $('sPushCalc').innerHTML = `Engine <b>${fmt(car.engineForce)} N</b> × gas <b>${Math.round(car.boost*100)}%</b> × tire grip <b>${Math.round(car.grip*100)}%</b>`;
+  $('sMass').textContent = fmt(car.mass) + ' kg';
+  $('massBar').innerHTML = car.massParts.map(p => `<div style="width:${p[1]/car.mass*100}%;background:${p[2]}" title="${p[0]}: ${p[1]} kg"></div>`).join('');
+  $('massLegend').innerHTML = car.massParts.map(p => `<span><i style="background:${p[2]}"></i>${p[0]} ${p[1]}</span>`).join('');
+  $('sDur').innerHTML = stars(car.dur);
+  $('sSafe').innerHTML = stars(car.safe);
+  $('sChute').textContent = fmt(car.chuteForce) + ' N  (+' + fmt(BRAKE_FORCE) + ' N brakes)';
+  $('sRating').textContent = car.rating + ' m/s  (' + Math.round(car.rating*2.237) + ' mph)';
+  $('sAuto').innerHTML = S.build.auto ? '<span style="color:var(--good)">ON</span>' : (S.owned.auto ? 'Owned — off' : 'Not owned');
+  $('sPerRace').textContent = money(car.perRace);
+}
+
+function renderTabs(){
+  $('tabs').innerHTML = TABS.map(t => `<button class="tab ${t[0]===tab?'on':''}" data-tab="${t[0]}">${t[1]}</button>`).join('');
+  $('tabNote').textContent = TABS.find(t => t[0]===tab)[2];
+}
+
+function renderCards(){
+  const cur = part(tab, S.build[tab]);
+  const isCons = CONSUMABLE[tab];
+  let html = PARTS[tab].map(p => {
+    const eq = S.build[tab] === p.id;
+    const owned = isCons || S.owned[tab].includes(p.id);
+    let specs = '';
+    if (tab === 'engine') specs = `<span>Force</span><b>${fmt(p.force)} N ${sign(p.force-cur.force,' N',true)}</b><span>Mass</span><b>${p.mass} kg ${sign(p.mass-cur.mass,' kg',false)}</b>`;
+    if (tab === 'frame')  specs = `<span>Mass</span><b>${p.mass} kg ${sign(p.mass-cur.mass,' kg',false)}</b><span>Durability</span><b class="stars">${stars(p.dur)}</b><span>Safety</span><b class="stars">${stars(p.safe)}</b>`;
+    if (tab === 'tires')  specs = `<span>Grip</span><b>${Math.round(p.grip*100)}% ${sign((p.grip-cur.grip)*100,'%',true)}</b><span>Mass</span><b>${p.mass} kg ${sign(p.mass-cur.mass,' kg',false)}</b>`;
+    if (tab === 'gas')    specs = `<span>Engine boost</span><b>${Math.round(p.boost*100)}% ${sign((p.boost-cur.boost)*100,'%',true)}</b><span>Mass</span><b>0 kg</b>`;
+    if (tab === 'chute')  specs = `<span>Pull</span><b>${fmt(p.force)} N ${sign(p.force-cur.force,' N',true)}</b><span>Rips above</span><b>${p.rating} m/s</b><span>Mass</span><b>${p.mass} kg ${sign(p.mass-cur.mass,' kg',false)}</b>`;
+    let row;
+    if (isCons){
+      row = `<span class="price">${p.cost ? money(p.cost)+' / race' : 'Free'}</span>` +
+            (eq ? '<span class="tag">IN USE</span>' : `<button class="small primary" data-use="${p.id}">Use</button>`);
+    } else if (eq){
+      row = `<span class="price">${p.cost ? 'Owned' : 'Stock'}</span><span class="tag">EQUIPPED</span>`;
+    } else if (owned){
+      row = `<span class="price"><span class="tag own">OWNED</span></span>` +
+            (p.cost ? `<button class="small" data-sell="${p.id}">Sell ${money(p.cost/2)}</button>` : '') +
+            `<button class="small primary" data-equip="${p.id}">Equip</button>`;
+    } else {
+      row = `<span class="price">${money(p.cost)}</span><button class="small primary" data-buy="${p.id}" ${S.money < p.cost ? 'disabled' : ''}>Buy</button>`;
+    }
+    return `<div class="card ${eq?'eq':''}"><h3>${esc(p.name)}</h3><div class="desc">${esc(p.desc)}</div><div class="specs">${specs}</div><div class="row">${row}</div></div>`;
+  }).join('');
+  if (tab === 'chute'){
+    let row;
+    if (!S.owned.auto) row = `<span class="price">${money(AUTO_DEPLOY.cost)}</span><button class="small primary" data-auto="buy" ${S.money < AUTO_DEPLOY.cost ? 'disabled':''}>Buy</button>`;
+    else row = `<span class="price"><span class="tag ${S.build.auto?'':'own'}">${S.build.auto?'ON':'OFF'}</span></span>` +
+               `<button class="small" data-auto="sell">Sell ${money(AUTO_DEPLOY.cost/2)}</button>` +
+               `<button class="small primary" data-auto="toggle">${S.build.auto ? 'Turn off' : 'Turn on'}</button>`;
+    html += `<div class="card ${S.build.auto?'eq':''}" style="border-style:dashed"><h3>⚡ Auto-Deploy Sensor</h3>
+      <div class="desc">Add-on: a laser at the finish line opens your chute at the EXACT moment you cross. No more late chutes.</div>
+      <div class="specs"><span>Works with</span><b>any chute</b><span>Mass</span><b>${AUTO_DEPLOY.mass} kg</b></div><div class="row">${row}</div></div>`;
+  }
+  $('cards').innerHTML = html;
+}
+
+function renderTiers(){
+  $('tierGrid').innerHTML = TIERS.map((t, i) => {
+    const unlocked = i === 0 || S.tiersWon[i-1];
+    const won = S.tiersWon[i];
+    const total = t.prizes.reduce((a,b)=>a+b,0);
+    return `<div class="tier ${won?'won':''} ${unlocked?'':'locked'}">
+      <h3>${i+1}. ${esc(t.name)} ${won ? '✅' : unlocked ? '' : '🔒'}</h3>
+      <div class="sub">3 races. Lose once and you're out.</div>
+      <div class="prize">Prize per win: ${t.prizes.map(money).join(' → ')}<br><b>Win it all: ${money(total)}</b></div>
+      <button class="${unlocked?'primary':''}" data-tier="${i}" ${unlocked?'':'disabled'}>${unlocked ? (won ? 'Race again' : 'Enter') : 'Locked'}</button>
+    </div>`;
+  }).join('');
+}
+
+/* ---- shop actions ---- */
+function noteTrap(id){ if (!S.stats.trapBuys.includes(id)) S.stats.trapBuys.push(id); }
+$('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (!b) return; tab = b.dataset.tab; renderTabs(); renderCards(); });
+$('cards').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.buy){
+    const p = part(tab, b.dataset.buy); if (S.money < p.cost) return;
+    S.money -= p.cost; S.owned[tab].push(p.id); S.build[tab] = p.id; if (p.trap) noteTrap(p.id);
+    beep(660, .12, 'triangle'); toast(`Bought ${p.name} for ${money(p.cost)}`);
+  } else if (b.dataset.equip){ S.build[tab] = b.dataset.equip; beep(520,.06,'triangle'); }
+  else if (b.dataset.sell){
+    const p = part(tab, b.dataset.sell);
+    S.owned[tab] = S.owned[tab].filter(x => x !== p.id); S.money += p.cost/2;
+    toast(`Sold ${p.name} for ${money(p.cost/2)}`);
+  } else if (b.dataset.use){ const p = part(tab, b.dataset.use); S.build[tab] = p.id; if (p.trap) noteTrap(p.id); beep(520,.06,'triangle'); }
+  else if (b.dataset.auto === 'buy'){ if (S.money < AUTO_DEPLOY.cost) return; S.money -= AUTO_DEPLOY.cost; S.owned.auto = true; S.build.auto = true; toast('Auto-deploy sensor installed'); }
+  else if (b.dataset.auto === 'toggle'){ S.build.auto = !S.build.auto; }
+  else if (b.dataset.auto === 'sell'){ S.owned.auto = false; S.build.auto = false; S.money += AUTO_DEPLOY.cost/2; }
+  save(); renderAll();
+});
+$('tierGrid').addEventListener('click', e => { const b = e.target.closest('[data-tier]'); if (!b || b.disabled) return; enterTier(+b.dataset.tier); });
+
+/* =====================================================================
+   TOURNAMENT / PIT
+   ===================================================================== */
+function enterTier(i){ tour = {tier:i, round:0}; showPit(); }
+function showPit(){
+  const T = TIERS[tour.tier], r = tour.round, o = oppCar(tour.tier, r);
+  const car = computeCar(S.build);
+  const cost = car.perRace;
+  const opts = (cat, unit) => PARTS[cat].map(p => `<option value="${p.id}" ${S.build[cat]===p.id?'selected':''}>${esc(p.name)} — ${cat==='tires'?'grip '+Math.round(p.grip*100)+'%':'boost '+Math.round(p.boost*100)+'%'} — ${p.cost?money(p.cost):'free'}</option>`).join('');
+  $('tourSheet').innerHTML = `
+    <h2>${esc(T.name)} — ${ROUND_NAMES[r]}</h2>
+    <p class="sub">Win this race to earn <b style="color:var(--good)">${money(T.prizes[r])}</b>. Lose and the tournament is over.</p>
+    <div class="bracket">${ROUND_NAMES.map((n,i)=>`<div class="${i<r?'done':i===r?'cur':''}">${i<r?'✓ ':''}${n}</div>`).join('')}</div>
+    <div class="vs">
+      <div class="vscard" style="border-color:var(--accent)">
+        <h3>You</h3>
+        <div class="k">Push on the road</div><div class="n" style="color:var(--accent)">${fmt(car.push)} N</div>
+        <div class="k" style="margin-top:8px">Total mass</div><div class="n" style="color:var(--blue)">${fmt(car.mass)} kg</div>
+      </div>
+      <div class="vsmid">VS</div>
+      <div class="vscard" style="border-color:${o.color}">
+        <h3>${esc(o.name)}</h3>
+        <div class="k">Push on the road</div><div class="n" style="color:var(--accent)">${fmt(o.push)} N</div>
+        <div class="k" style="margin-top:8px">Total mass</div><div class="n" style="color:var(--blue)">${fmt(o.mass)} kg</div>
+      </div>
+    </div>
+    <h3 style="margin:18px 0 0">Pit stop — fresh tires and gas for this race</h3>
+    <div class="pit">
+      <div><label>Tires</label><select id="pitTires">${opts('tires')}</select></div>
+      <div><label>Gas</label><select id="pitGas">${opts('gas')}</select></div>
+    </div>
+    <div class="warnline">${S.build.auto ? '⚡ Auto-deploy is ON — your chute opens right at the finish line.' : '⚠️ No auto-deploy: YOU must pull the chute right after the finish line!'}
+      &nbsp; Chute rips above <b>${car.rating} m/s</b>.</div>
+    <div class="actions">
+      <span style="margin-right:auto;align-self:center">This race costs <b>${money(cost)}</b> · Bank <b>${money(S.money)}</b></span>
+      <button class="danger" id="pitQuit">Withdraw</button>
+      <button class="primary" id="pitGo" ${cost > Math.max(0,S.money) && cost>0 ? 'disabled' : ''}>To the starting line ▶</button>
+    </div>
+    ${cost > Math.max(0,S.money) && cost>0 ? '<div class="warnline" style="text-align:right;color:var(--bad)">Not enough money for these tires + gas. Pick cheaper ones.</div>' : ''}`;
+  $('tourScreen').classList.remove('hidden');
+  $('pitTires').onchange = e => { S.build.tires = e.target.value; const p=part('tires',e.target.value); if(p.trap) noteTrap(p.id); save(); renderAll(); showPit(); };
+  $('pitGas').onchange = e => { S.build.gas = e.target.value; const p=part('gas',e.target.value); if(p.trap) noteTrap(p.id); save(); renderAll(); showPit(); };
+  $('pitQuit').onclick = () => { tour = null; $('tourScreen').classList.add('hidden'); renderAll(); };
+  $('pitGo').onclick = () => { $('tourScreen').classList.add('hidden'); startRace(); };
+}
+
+/* =====================================================================
+   RACE
+   ===================================================================== */
+let R = null;
+const cv = $('raceCanvas');
+function startRace(){
+  const car = computeCar(S.build), T = TIERS[tour.tier];
+  S.money -= car.perRace; S.stats.races++; save(); renderBank();
+  const opp = oppCar(tour.tier, tour.round);
+  const lightsAt = 1.6 + Math.random() * 1.4;             // first amber
+  R = { car, opp, build:{...S.build}, cost:car.perRace,
+        clock:0, lightsAt, tGreen: lightsAt + 1.5,
+        me:newRunner(), them:newRunner(),
+        oppReact: T.react[0] + Math.random() * (T.react[1] - T.react[0]),
+        falseStart:false, endAt:null, beeped:0, shake:0, msg:'', crashedSoundDone:false, last:null, done:false };
+  $('raceTitle').textContent = `${T.name} · ${ROUND_NAMES[tour.round]} · vs ${opp.name}`;
+  ['b1','b2','b3','bG'].forEach(id => $(id).className = 'bulb');
+  setAction('idle', 'GET READY…');
+  $('raceMsg').textContent = '';
+  $('race').classList.remove('hidden');
+  requestAnimationFrame(raceFrame);
+}
+function setAction(cls, text){ const b = $('actionBtn'); b.className = cls; b.textContent = text; }
+
+function playerAction(){
+  if (!R || R.done) return;
+  const me = R.me;
+  if (!me.launched){
+    if (R.clock < R.lightsAt){ flashMsg('Wait for the lights…'); return; }
+    if (R.clock < R.tGreen){
+      R.falseStart = true; me.launched = true; me.launchT = R.clock;
+      ['b1','b2','b3','bG'].forEach(id => $(id).className = 'bulb red');
+      beep(150, .6, 'sawtooth', .2);
+      R.msg = 'FALSE START!'; setAction('idle', 'DISQUALIFIED'); R.endAt = R.clock + 1.8;
+      return;
+    }
+    me.launched = true; me.launchT = R.clock;
+    setAction('chute', '🪂 chute (after the finish line!)');
+    return;
+  }
+  if (!me.chuteOut && !R.falseStart){
+    deployChute(me, R.car);
+    setAction('idle', me.ripped ? 'CHUTE RIPPED!' : 'CHUTE OUT');
+    if (me.ripped){ beep(120,.4,'sawtooth',.2); }
+    else beep(300,.15,'triangle');
+  }
+}
+function flashMsg(t){ $('raceMsg').textContent = t; clearTimeout(flashMsg._t); flashMsg._t = setTimeout(()=>{ if (R && !R.msg) $('raceMsg').textContent=''; }, 900); }
+
+$('actionBtn').addEventListener('pointerdown', e => { e.preventDefault(); playerAction(); });
+cv.addEventListener('pointerdown', e => { e.preventDefault(); playerAction(); });
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'Enter'){
+    if (!$('race').classList.contains('hidden')){ e.preventDefault(); if (!e.repeat) playerAction(); }
+  }
+});
+
+function raceFrame(ts){
+  if (!R || R.done) return;
+  const dtReal = R.last == null ? 0 : Math.min(0.05, (ts - R.last) / 1000);
+  R.last = ts;
+  advanceRace(dtReal);
+  drawRace();
+  if (!R.done) requestAnimationFrame(raceFrame);
+}
+function advanceRace(dtReal){
+  const steps = Math.ceil(dtReal / 0.001);
+  const h = steps ? dtReal / steps : 0;
+  for (let i = 0; i < steps; i++){
+    const t = R.clock;
+    // lights
+    const lit = t >= R.tGreen ? 4 : t >= R.lightsAt + 1.0 ? 3 : t >= R.lightsAt + 0.5 ? 2 : t >= R.lightsAt ? 1 : 0;
+    if (lit > R.beeped && !R.falseStart){
+      R.beeped = lit;
+      if (lit < 4){ $('b'+lit).className = 'bulb amber'; beep(700, .12); }
+      else { ['b1','b2','b3'].forEach(id => $(id).className = 'bulb'); $('bG').className = 'bulb green'; beep(1400, .35); if (!R.me.launched) setAction('launch', 'GO!'); }
+    }
+    // opponent
+    if (!R.them.launched && t >= R.tGreen + R.oppReact){ R.them.launched = true; R.them.launchT = t; }
+    stepRunner(R.them, R.opp, h, t);
+    if (!R.falseStart){
+      const wasFinished = R.me.finished;
+      stepRunner(R.me, R.car, h, t);
+      if (!wasFinished && R.me.finished && !R.me.chuteOut) setAction('chute urgent', '🪂 CHUTE NOW!');
+      if (!wasFinished && R.me.finished && R.car.auto) setAction('idle', R.me.ripped ? 'CHUTE RIPPED!' : 'AUTO CHUTE ✓');
+    }
+    R.clock += h;
+  }
+  const me = R.me;
+  if (me.crashed && !R.crashedSoundDone){ R.crashedSoundDone = true; crashSound(); R.shake = 0.6; R.msg = '💥 CRASH!'; setAction('idle','CRASHED'); }
+  if (me.stalled && !R.msg){ R.msg = 'STOPPED BEFORE THE LINE'; setAction('idle','DNF'); }
+  if (R.shake > 0) R.shake -= dtReal;
+  if (R.msg) $('raceMsg').textContent = R.msg;
+  const meDone = R.falseStart || me.stopped || me.crashed || me.stalled;
+  const themDone = R.them.stopped || R.them.crashed;
+  if (R.endAt == null && meDone && (themDone || R.falseStart || me.stalled)) R.endAt = R.clock + 1.3;
+  if (R.endAt == null && R.clock > R.tGreen + 25) R.endAt = R.clock;         // player never launched
+  if (R.endAt != null && R.clock >= R.endAt){ R.done = true; finishRace(); }
+  // HUD
+  $('hSpeed').innerHTML = me.v.toFixed(0) + '<small style="font-size:13px"> m/s</small>';
+  $('hDist').textContent = Math.min(me.x, TRACK_END).toFixed(0) + ' m';
+  const tt = me.finished ? me.finishT - R.tGreen : (R.clock > R.tGreen ? R.clock - R.tGreen : 0);
+  $('hTime').textContent = Math.max(0, tt).toFixed(2);
+  drawMiniMap();
+}
+
+function drawMiniMap(){
+  const mm = $('miniMap'), w = mm.clientWidth;
+  const px = x => (x / TRACK_END * (w - 16) + 8);
+  mm.innerHTML = `
+    <div style="position:absolute;left:${px(TRACK_FINISH)}px;top:0;bottom:0;width:3px;background:repeating-linear-gradient(#fff 0 4px,#000 4px 8px)"></div>
+    <div style="position:absolute;left:${px(TRACK_FINISH)}px;right:8px;top:4px;bottom:4px;background:rgba(255,138,31,.15)"></div>
+    <div style="position:absolute;right:4px;top:0;bottom:0;width:5px;background:#ef4444"></div>
+    <div title="${esc(R.opp.name)}" style="position:absolute;left:${px(R.them.x)-6}px;top:3px;width:12px;height:7px;border-radius:3px;background:${R.opp.color}"></div>
+    <div style="position:absolute;left:${px(R.me.x)-6}px;top:12px;width:12px;height:7px;border-radius:3px;background:var(--accent)"></div>`;
+}
+
+function drawRace(){
+  const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  if (cv.width !== w*dpr || cv.height !== h*dpr){ cv.width = w*dpr; cv.height = h*dpr; }
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+  const ppm = Math.max(6, Math.min(w / 34, h / 9));
+  const camX = Math.min(R.me.x, TRACK_END) - (w * 0.62) / ppm;     // world x at left edge
+  const sx = x => (x - camX) * ppm;
+  let shakeX = 0, shakeY = 0;
+  if (R.shake > 0){ shakeX = (Math.random()-.5) * 14 * R.shake; shakeY = (Math.random()-.5) * 14 * R.shake; }
+  ctx.save(); ctx.translate(shakeX, shakeY);
+  // grass + track
+  ctx.fillStyle = '#14301c'; ctx.fillRect(-20,-20,w+40,h+40);
+  const laneH = 3.2 * ppm, trackTop = h/2 - laneH - 0.6*ppm, trackBot = h/2 + laneH + 0.6*ppm;
+  ctx.fillStyle = '#2b2e35'; ctx.fillRect(-20, trackTop, w+40, trackBot - trackTop);
+  // shutdown area tint
+  const sdL = Math.max(-20, sx(TRACK_FINISH)), sdR = Math.min(w+20, sx(TRACK_END));
+  if (sdR > sdL){ ctx.fillStyle = '#3a3226'; ctx.fillRect(sdL, trackTop, sdR - sdL, trackBot - trackTop); }
+  // centre line + edges
+  ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 2; ctx.setLineDash([ppm*2, ppm*2]);
+  ctx.beginPath(); ctx.moveTo(-20, h/2); ctx.lineTo(w+20, h/2); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle = '#fbbf24'; ctx.beginPath(); ctx.moveTo(-20, trackTop); ctx.lineTo(w+20, trackTop); ctx.moveTo(-20, trackBot); ctx.lineTo(w+20, trackBot); ctx.stroke();
+  // distance markers
+  ctx.font = `bold ${Math.max(11, ppm*0.9)}px system-ui`; ctx.textAlign = 'center';
+  const marks = [];
+  for (let m = 0; m < TRACK_FINISH - 10; m += 25) marks.push(m);
+  for (let m = TRACK_END - 50; m > TRACK_FINISH + 10; m -= 50) marks.push(m);
+  for (const m of marks){
+    if (m < camX - 5 || m > camX + w/ppm + 5) continue;
+    const X = sx(m);
+    ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(X-1, trackTop, 2, trackBot - trackTop);
+    ctx.fillStyle = '#cbd5e1';
+    const label = m <= TRACK_FINISH ? `${m} m` : `${TRACK_END - m} m to net`;
+    ctx.fillText(label, X, trackTop - 6);
+  }
+  // start line
+  if (sx(0) > -20 && sx(0) < w+20){ ctx.fillStyle = '#fff'; ctx.fillRect(sx(0)-2, trackTop, 4, trackBot-trackTop); }
+  // finish line (checkered)
+  const fX = sx(TRACK_FINISH);
+  if (fX > -40 && fX < w+40){
+    const sq = Math.max(4, ppm*0.5);
+    for (let yy = trackTop, k = 0; yy < trackBot; yy += sq, k++){
+      ctx.fillStyle = k%2 ? '#000' : '#fff'; ctx.fillRect(fX - sq, yy, sq, sq);
+      ctx.fillStyle = k%2 ? '#fff' : '#000'; ctx.fillRect(fX, yy, sq, sq);
+    }
+    ctx.fillStyle = '#fff'; ctx.font = `900 ${Math.max(14, ppm*1.2)}px system-ui`; ctx.fillText('FINISH', fX, trackBot + ppm*1.4);
+  }
+  // sand + net
+  const nX = sx(TRACK_END);
+  if (nX < w + 40){
+    ctx.fillStyle = '#c2a36b'; ctx.fillRect(nX, trackTop - ppm, w + 40, trackBot - trackTop + 2*ppm);
+    ctx.fillStyle = '#ef4444'; ctx.fillRect(nX - 4, trackTop - ppm, 8, trackBot - trackTop + 2*ppm);
+    ctx.fillStyle = '#fff'; ctx.font = `900 ${Math.max(12, ppm)}px system-ui`; ctx.fillText('NET', nX + 3*ppm, h/2 + ppm*0.4);
+  }
+  // cars
+  const laneMe = h/2 + laneH/2 + 0.3*ppm, laneThem = h/2 - laneH/2 - 0.3*ppm;
+  const chuteState = (r, car) => !r.chuteOut ? 'packed' : r.ripped ? 'ripped' : 'open';
+  const chuteK = (r) => r.chuteOut && r.deployX != null ? Math.min(1, (r.x - r.deployX) / 6 + 0.25) : 1;
+  const oL = oppLook(R.opp);
+  drawCar(ctx, sx(R.them.x), laneThem, ppm, {...oL, chute: R.them.chuteOut ? 'open' : 'packed', chuteOpen: chuteK(R.them)});
+  const mL = carLook(R.build);
+  drawCar(ctx, sx(Math.min(R.me.x, TRACK_END)), laneMe, ppm, {...mL, chute: chuteState(R.me, R.car), chuteOpen: chuteK(R.me)});
+  // speed streaks
+  if (R.me.v > 5){
+    ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = 2;
+    for (let i=0;i<8;i++){ const yy = (i*97 + (R.clock*600)%97) % h; const len = R.me.v * 1.5; const xx = (i*173) % w;
+      ctx.beginPath(); ctx.moveTo(xx, yy); ctx.lineTo(xx - len, yy); ctx.stroke(); }
+  }
+  // opponent off-screen indicator
+  const oX = sx(R.them.x);
+  ctx.font = `bold 14px system-ui`; ctx.fillStyle = R.opp.color;
+  if (oX > w + 10){ ctx.textAlign = 'right'; ctx.fillText(`${R.opp.name} ▶ +${(R.them.x - R.me.x).toFixed(0)} m`, w - 10, laneThem + 5); }
+  if (oX < -7*ppm){ ctx.textAlign = 'left'; ctx.fillText(`◀ ${R.opp.name} −${(R.me.x - R.them.x).toFixed(0)} m`, 10, laneThem + 5); }
+  ctx.restore();
+}
+
+/* =====================================================================
+   RESULTS
+   ===================================================================== */
+function finishRace(){
+  const me = R.me, them = R.them, car = R.car, opp = R.opp, T = TIERS[tour.tier];
+  const myA = car.push / car.mass, oppA = opp.push / opp.mass;
+  const myRT = me.launchT != null ? me.launchT - R.tGreen : null;
+  const myTotal = me.finished ? me.finishT - R.tGreen : Infinity;
+  const oppTotal = them.finishT != null ? them.finishT - R.tGreen : Infinity;
+  let result;
+  if (R.falseStart) result = 'false';
+  else if (!me.launched) result = 'nolaunch';
+  else if (!me.finished) result = 'dnf';
+  else result = myTotal <= oppTotal ? 'win' : 'lose';
+  const won = result === 'win';
+
+  // stopping / crash
+  let repair = 0, chuteFix = 0, hospital = 0, injured = false, injChance = 0;
+  const chuteCost = part('chute', R.build.chute).cost;
+  if (me.crashed){
+    const b = crashBill(car, me.impactV, chuteCost);
+    repair = b.repair; if (me.chuteOut) chuteFix = b.chuteFix;
+    injChance = injuryChance(me.impactV, car.safe);
+    injured = Math.random() < injChance;
+    if (injured) hospital = hospitalBill(me.impactV);
+    S.stats.crashes++; if (injured) S.stats.injuries++;
+  } else if (me.ripped){
+    chuteFix = crashBill(car, 0, chuteCost).chuteFix;
+  }
+  if (me.ripped) S.stats.rips++;
+  if (R.falseStart) S.stats.falseStarts++;
+  const prize = won ? T.prizes[tour.round] : 0;
+  const bills = repair + chuteFix + hospital;
+  S.money += prize - bills;
+  S.stats.earned += prize; S.stats.bills += bills;
+  if (won) S.stats.wins++;
+
+  const lastRound = tour.round === 2;
+  let tourOver = !won || injured || lastRound;
+  let champMsg = '';
+  if (won && lastRound){
+    if (!S.tiersWon[tour.tier]) champMsg = tour.tier < 5 ? `🏆 You won ${T.name}! <b>${TIERS[tour.tier+1].name}</b> is now unlocked.` : '';
+    S.tiersWon[tour.tier] = true;
+    if (tour.tier === 5){ S.champion = true; champMsg = '🏆🏆🏆 <b>WORLD CHAMPION!</b> You beat the best in the world. Don\'t forget to Turn In your code!'; }
+  }
+  S.log.push({tier:tour.tier, round:tour.round, push:car.push, mass:car.mass, a:+myA.toFixed(2),
+    rt: myRT != null ? +myRT.toFixed(3) : null, et: me.finished ? +(me.finishT - me.launchT).toFixed(3) : null,
+    total: isFinite(myTotal) ? +myTotal.toFixed(3) : null, v: me.finishV != null ? +me.finishV.toFixed(1) : null,
+    res: result, crash: me.crashed ? +me.impactV.toFixed(1) : 0, rip: me.ripped ? 1 : 0, inj: injured ? 1 : 0,
+    opp: opp.name, oPush: opp.push, oMass: opp.mass, oA: +oppA.toFixed(2), oTotal: isFinite(oppTotal) ? +oppTotal.toFixed(3) : null,
+    build: {...R.build}, cost: R.cost, bills, prize});
+  save();
+
+  // ---- tips (not subtle on purpose) ----
+  const tips = [];
+  if (result === 'false') tips.push(['bad', 'You left before the green light. Watch the rhythm: <b>bing… bing… bing… GO!</b> The lights are always evenly spaced.']);
+  if (result === 'dnf') tips.push(['bad', 'Your chute opened <b>before</b> the finish line and pulled back harder than your engine pushed forward — the car stopped!']);
+  if (result === 'lose' && me.deployX != null && me.deployX < TRACK_FINISH) tips.push(['warn', `You opened your chute <b>${(TRACK_FINISH - me.deployX).toFixed(0)} m before</b> the finish line. It slowed you down while you were still racing.`]);
+  if (result === 'lose' && opp.push < car.push) tips.push(['warn', `${esc(opp.name)} had <b>LESS push</b> than you (${fmt(opp.push)} N vs ${fmt(car.push)} N) but still had more acceleration. Compare your <b>masses</b>: ${fmt(opp.mass)} kg vs ${fmt(car.mass)} kg.`]);
+  if (result === 'lose' && opp.push >= car.push && opp.mass >= car.mass) tips.push(['warn', `${esc(opp.name)} was heavier than you, but had so much more push that they still out-accelerated you.`]);
+  if (result === 'lose' && myRT != null && myRT > 0.45) tips.push(['warn', `Your reaction time was ${myRT.toFixed(2)} s. Try to launch the instant the light turns green.`]);
+  if (result === 'lose' && Math.abs(myTotal - oppTotal) < 0.15) tips.push(['warn', 'That was really close! A slightly faster launch would have done it.']);
+  if (me.ripped) tips.push(['bad', `Your chute <b>ripped</b>: you opened it at <b>${me.deployV.toFixed(0)} m/s</b>, but the ${esc(part('chute',R.build.chute).name)} is only rated to <b>${car.rating} m/s</b>. A faster car needs a stronger chute.`]);
+  if (me.crashed && !me.chuteOut) tips.push(['bad', 'You never opened your chute! Brakes alone (2,000 N) can\'t stop a race car in time.']);
+  if (me.crashed && me.chuteOut && !me.ripped){
+    if (me.deployX - TRACK_FINISH > 15) tips.push(['bad', `You opened your chute <b>${(me.deployX - TRACK_FINISH).toFixed(0)} m past</b> the finish line — too late. (The Auto-Deploy Sensor opens it exactly on the line.)`]);
+    tips.push(['bad', `You opened the chute at ${me.deployV.toFixed(0)} m/s. Slowing ${fmt(car.mass)} kg from that speed takes a lot of force, and your chute + brakes only pull ${fmt(car.chuteForce + BRAKE_FORCE)} N. A stronger chute slows you down faster.`]);
+  }
+  if (me.crashed) tips.push(['bad', `Hit the net at <b>${me.impactV.toFixed(0)} m/s</b>. Frame durability ${car.dur}/5 → repair ${money(repair)}. ` +
+      (injured ? `Your driver was <b>injured</b> (${Math.round(injChance*100)}% chance with safety ${car.safe}/5) — hospital bill ${money(hospital)} and you must leave the tournament.` :
+                 `Luckily, your driver walked away (${Math.round(injChance*100)}% injury chance with safety ${car.safe}/5).`)]);
+  if (won && !me.crashed && !me.ripped) tips.push(['', `Nice run! You beat ${esc(opp.name)} by ${(oppTotal - myTotal).toFixed(2)} s.`]);
+  if (won && Math.abs(opp.push - car.push) / car.push < 0.08 && car.mass < opp.mass) tips.push(['', `You and ${esc(opp.name)} had almost the <b>same push</b> (${fmt(car.push)} N vs ${fmt(opp.push)} N). So why did you win? Look at the <b>masses</b>.`]);
+  else if (won && car.push < opp.push) tips.push(['', `You won with <b>LESS push</b> than ${esc(opp.name)} (${fmt(car.push)} N vs ${fmt(opp.push)} N). Look at the <b>masses</b>: ${fmt(car.mass)} kg vs ${fmt(opp.mass)} kg.`]);
+  if (!me.ripped && !me.crashed && car.rating < 140 && me.finishV != null && me.finishV > 0.88 * car.rating) tips.push(['warn', `Heads up: you crossed the line at <b>${me.finishV.toFixed(0)} m/s</b>, and your chute rips above <b>${car.rating} m/s</b>. If your car gets any faster, you'll need a stronger chute.`]);
+
+  const resultText = {win:'YOU WIN!', lose:'YOU LOST', false:'FALSE START — DISQUALIFIED', dnf:'DID NOT FINISH', nolaunch:'YOU NEVER LAUNCHED'}[result];
+  const fmtT = t => (t == null || !isFinite(t)) ? '—' : t.toFixed(2) + ' s';
+  const stopText = me.crashed ? `<span style="color:var(--bad)">Crashed into net at ${me.impactV.toFixed(0)} m/s</span>`
+    : me.stopped ? `<span style="color:var(--good)">Stopped ${ (TRACK_END - me.x).toFixed(0)} m before the net</span>` : '—';
+
+  $('race').classList.add('hidden');
+  openModal(`
+    <p class="headline ${won?'win':'lose'}">${resultText}</p>
+    <p class="sub">${esc(T.name)} · ${ROUND_NAMES[tour.round]} · vs ${esc(opp.name)}</p>
+    ${champMsg ? `<div class="tip" style="font-size:17px">${champMsg}</div>` : ''}
+    <table class="res">
+      <tr><th></th><th>You</th><th>${esc(opp.name)}</th></tr>
+      <tr><td>Push on the road</td><td>${fmt(car.push)} N</td><td>${fmt(opp.push)} N</td></tr>
+      <tr><td>Total mass</td><td>${fmt(car.mass)} kg</td><td>${fmt(opp.mass)} kg</td></tr>
+      <tr class="hl"><td>Acceleration</td><td>${myA.toFixed(1)} m/s²</td><td>${oppA.toFixed(1)} m/s²</td></tr>
+      <tr><td>Reaction time</td><td>${myRT != null ? (myRT < 0 ? 'early!' : myRT.toFixed(2)+' s') : '—'}</td><td>${R.oppReact.toFixed(2)} s</td></tr>
+      <tr><td>Time on track (201 m)</td><td>${me.finished ? fmtT(me.finishT - me.launchT) : '—'}</td><td>${them.finishT != null ? fmtT(them.finishT - them.launchT) : '—'}</td></tr>
+      <tr class="hl"><td>Total time (reaction + track)</td><td>${fmtT(myTotal)}</td><td>${fmtT(oppTotal)}</td></tr>
+      <tr><td>Speed at finish line</td><td>${me.finishV != null ? me.finishV.toFixed(0)+' m/s' : '—'}</td><td>${them.finishV != null ? them.finishV.toFixed(0)+' m/s' : '—'}</td></tr>
+      <tr><td>Stopping</td><td colspan="2" style="text-align:right">${stopText}</td></tr>
+    </table>
+    ${tips.map(t => `<div class="tip ${t[0]}">${t[1]}</div>`).join('')}
+    <div class="money">
+      <div><span>Tires + gas</span><span>−${money(R.cost)}</span></div>
+      ${prize ? `<div><span>Prize money</span><span style="color:var(--good)">+${money(prize)}</span></div>` : ''}
+      ${repair ? `<div><span>Repairs</span><span style="color:var(--bad)">−${money(repair)}</span></div>` : ''}
+      ${chuteFix ? `<div><span>Parachute repair</span><span style="color:var(--bad)">−${money(chuteFix)}</span></div>` : ''}
+      ${hospital ? `<div><span>Hospital bill</span><span style="color:var(--bad)">−${money(hospital)}</span></div>` : ''}
+      <div style="border-top:1px solid var(--line);margin-top:4px;padding-top:6px"><b>Bank</b><b style="color:${S.money<0?'var(--bad)':'var(--good)'}">${money(S.money)}</b></div>
+    </div>
+    ${S.money < 0 ? '<div class="tip bad">You are in debt! You can still race with free tires and gas, or sell parts to pay it off.</div>' : ''}
+    <div class="actions">
+      ${tourOver ? '<button class="primary" id="resGarage">Back to garage</button>'
+                 : `<button class="danger" id="resGarage">Withdraw</button><button class="primary" id="resNext">Next: ${ROUND_NAMES[tour.round+1]} ▶</button>`}
+    </div>`);
+  $('resGarage').onclick = () => { closeModal(); tour = null; R = null; renderAll(); };
+  if (!tourOver) $('resNext').onclick = () => { closeModal(); tour.round++; R = null; renderAll(); showPit(); };
+  else if (result === 'win' && lastRound) beep(880, .5, 'triangle');
+  renderAll();
+}
+
+/* =====================================================================
+   MODALS: help, log, turn-in, intro
+   ===================================================================== */
+function openModal(html){ $('modalSheet').innerHTML = html; $('modal').classList.remove('hidden'); $('modal').scrollTop = 0; }
+function closeModal(){ $('modal').classList.add('hidden'); }
+
+function showHelp(first){
+  openModal(`<div class="intro">
+    <h2>🏁 Welcome to Drag Strip Garage</h2>
+    <p>You own a drag racing car. Win races to earn prize money, then spend it on better parts.
+    Climb through <b>6 tournaments</b> and become <b>World Champion</b>.</p>
+    <ul>
+      <li><b>The race:</b> two cars, a straight 201 m strip. First to the finish line wins.</li>
+      <li><b>The start:</b> watch the lights — <b>bing… bing… bing… GO!</b> Tap LAUNCH (or press SPACE) on green. Go early and you're disqualified.</li>
+      <li><b>The stop:</b> after the finish line, tap CHUTE fast. You have ${SHUTDOWN} m to stop before you hit the net. Crashes cost repair bills — and hospital bills if your driver gets hurt.</li>
+      <li><b>Your car:</b> every part changes your car's <b style="color:var(--accent)">push</b> (force) and its <b style="color:var(--blue)">mass</b>. Watch both numbers!</li>
+      <li><b>Tires and gas</b> get used up — you pay for them every race. Choose wisely.</li>
+      <li>Not every expensive part is a good deal. Some are a waste of money. 🤔</li>
+      <li>Check the <b>Race log</b> to compare your races and figure out what wins.</li>
+    </ul>
+    <label style="font-size:14px;color:var(--muted)">Your name (for turning in)</label>
+    <input type="text" id="nameIn" value="${esc(S.name)}" placeholder="First and last name" maxlength="60">
+    <div class="actions"><button class="primary" id="helpGo">${first ? "Let's race!" : 'Close'}</button></div></div>`);
+  $('helpGo').onclick = () => { S.name = $('nameIn').value.trim(); S.seenIntro = true; save(); closeModal(); };
+}
+const RES_LABEL = {win:'Win', lose:'Loss', false:'False start', dnf:'DNF', nolaunch:'No launch'};
+function showLog(){
+  const rows = S.log.slice().reverse().map((l, i) => `<tr>
+    <td>${S.log.length - i}</td><td>${esc(TIERS[l.tier].name)} · ${ROUND_NAMES[l.round]}</td>
+    <td>${fmt(l.push)}</td><td>${fmt(l.mass)}</td><td><b>${l.a.toFixed(1)}</b></td><td>${l.total != null ? l.total.toFixed(2) : '—'}</td>
+    <td>${l.v != null ? l.v.toFixed(0) : '—'}</td>
+    <td style="color:${l.res==='win'?'var(--good)':'var(--bad)'}">${RES_LABEL[l.res]}${l.crash ? ' 💥' : ''}${l.rip ? ' 🪂✂' : ''}${l.inj ? ' 🏥' : ''}</td>
+    <td style="color:var(--muted)">${esc(l.opp)}</td><td style="color:var(--muted)">${fmt(l.oPush)}</td><td style="color:var(--muted)">${fmt(l.oMass)}</td><td style="color:var(--muted)">${l.oA.toFixed(1)}</td></tr>`).join('');
+  openModal(`<h2>📋 Race log</h2>
+    <p class="sub">Every race you've run. Look for patterns: what do the fastest cars have in common?</p>
+    <div class="logwrap"><table class="log">
+      <tr><th>#</th><th>Race</th><th>Your push (N)</th><th>Your mass (kg)</th><th>Your accel (m/s²)</th><th>Total time (s)</th><th>Finish speed (m/s)</th><th>Result</th>
+          <th>Opponent</th><th>Opp push</th><th>Opp mass</th><th>Opp accel</th></tr>
+      ${rows || '<tr><td colspan="12" style="text-align:center;color:var(--muted)">No races yet.</td></tr>'}
+    </table></div>
+    <div class="actions"><button class="danger small" id="logReset">Reset whole game</button><button class="primary" id="logClose">Close</button></div>`);
+  $('logClose').onclick = closeModal;
+  $('logReset').onclick = () => {
+    if (confirm('Erase ALL progress, money and parts and start over? This cannot be undone.')){ const n = S.name; S = freshState(); S.name = n; S.seenIntro = true; save(); closeModal(); renderAll(); }
+  };
+}
+function showTurnin(){
+  openModal(`<h2>📤 Turn in</h2>
+    <p class="sub">Generate a code and paste it where your teacher asks. You can turn in more than once — your latest code counts.</p>
+    <label style="font-size:14px;color:var(--muted)">Your name</label>
+    <input type="text" id="tiName" value="${esc(S.name)}" placeholder="First and last name" maxlength="60">
+    <div id="tiOut" style="margin-top:12px"></div>
+    <div class="actions"><button id="tiClose">Close</button><button class="primary" id="tiGen">Generate code</button></div>`);
+  $('tiClose').onclick = closeModal;
+  $('tiGen').onclick = () => {
+    const name = $('tiName').value.trim();
+    if (name.length < 2){ $('tiOut').innerHTML = '<div class="tip bad">Please type your name.</div>'; return; }
+    S.name = name; save();
+    const best = S.log.filter(l => l.res === 'win');
+    const payload = {
+      n: name, at: Date.now(), ch: S.champion ? 1 : 0,
+      tw: S.tiersWon.map(x => x ? 1 : 0).join(''), $: Math.round(S.money),
+      st: S.stats, b: S.build, ow: S.owned,
+      ba: best.length ? Math.max(...best.map(l => l.a)) : 0,
+      lg: S.log.slice(-25).map(l => [l.tier, l.round, l.push, l.mass, l.a, l.total, l.res[0], l.crash, l.rip, l.inj]),
+    };
+    const code = encodeTurnin(payload);
+    $('tiOut').innerHTML = `<textarea class="code" id="tiCode" readonly>${code}</textarea><button class="small primary" id="tiCopy" style="margin-top:6px">Copy code</button>`;
+    $('tiCopy').onclick = async () => {
+      const ta = $('tiCode'); ta.select();
+      try { await navigator.clipboard.writeText(code); } catch(e){ document.execCommand('copy'); }
+      toast('Code copied!');
+    };
+  };
+}
+$('btnHelp').onclick = () => showHelp(false);
+$('btnTiers').onclick = () => $('tiers').scrollIntoView({behavior:'smooth'});
+$('btnLog').onclick = showLog;
+$('btnTurnin').onclick = showTurnin;
+$('btnSound').onclick = () => { soundOn = !soundOn; $('btnSound').textContent = soundOn ? '🔊 Sound' : '🔇 Muted'; };
+window.addEventListener('resize', () => renderCar());
+
+renderAll();
+if (!S.seenIntro) showHelp(true);
+</script>
+</body>
+</html>
